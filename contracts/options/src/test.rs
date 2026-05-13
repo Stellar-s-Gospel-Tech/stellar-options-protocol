@@ -56,8 +56,13 @@ fn test_buy_transfers_premium_to_writer() {
     let id = env.register(OptionsContract, ());
     let client = OptionsContractClient::new(&env, &id);
     let option_id = client.create(
-        &writer, &OptionKind::Call, &underlying, &quote,
-        &10_0000000_i128, &1_5000000_i128, &1000000_i128,
+        &writer,
+        &OptionKind::Call,
+        &underlying,
+        &quote,
+        &10_0000000_i128,
+        &1_5000000_i128,
+        &1000000_i128,
         &(env.ledger().sequence() + 1000),
     );
     let quote_token = TokenClient::new(&env, &quote);
@@ -77,8 +82,13 @@ fn test_exercise_call_swaps_tokens() {
     let id = env.register(OptionsContract, ());
     let client = OptionsContractClient::new(&env, &id);
     let option_id = client.create(
-        &writer, &OptionKind::Call, &underlying, &quote,
-        &10_0000000_i128, &1_5000000_i128, &1000000_i128,
+        &writer,
+        &OptionKind::Call,
+        &underlying,
+        &quote,
+        &10_0000000_i128,
+        &1_5000000_i128,
+        &1000000_i128,
         &(env.ledger().sequence() + 1000),
     );
     client.buy(&buyer, &option_id);
@@ -87,7 +97,10 @@ fn test_exercise_call_swaps_tokens() {
 
     // SOP-003: buyer exercises — pays strike, receives underlying
     client.exercise(&option_id);
-    assert_eq!(underlying_token.balance(&buyer) - buyer_before, 10_0000000_i128);
+    assert_eq!(
+        underlying_token.balance(&buyer) - buyer_before,
+        10_0000000_i128
+    );
 }
 
 // ── reclaim (SOP-005) ─────────────────────────────────────────────────────────
@@ -100,8 +113,14 @@ fn test_reclaim_after_expiry() {
     let client = OptionsContractClient::new(&env, &id);
     let expiry = env.ledger().sequence() + 100;
     let option_id = client.create(
-        &writer, &OptionKind::Call, &underlying, &quote,
-        &10_0000000_i128, &1_5000000_i128, &1000000_i128, &expiry,
+        &writer,
+        &OptionKind::Call,
+        &underlying,
+        &quote,
+        &10_0000000_i128,
+        &1_5000000_i128,
+        &1000000_i128,
+        &expiry,
     );
     env.ledger().with_mut(|li| li.sequence_number = expiry + 1);
     let token = TokenClient::new(&env, &underlying);

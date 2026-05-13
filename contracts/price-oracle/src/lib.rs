@@ -37,13 +37,20 @@ pub struct PriceOracle;
 #[contractimpl]
 impl PriceOracle {
     pub fn initialize(env: Env, admin: Address) {
-        assert!(!env.storage().instance().has(&DataKey::Admin), "already initialized");
+        assert!(
+            !env.storage().instance().has(&DataKey::Admin),
+            "already initialized"
+        );
         env.storage().instance().set(&DataKey::Admin, &admin);
     }
 
     /// Set USD spot price for `asset`. Admin only.
     pub fn set_price(env: Env, asset: Address, price: i128) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("not initialized");
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
         admin.require_auth();
         assert!(price > 0, "price must be positive");
         env.storage().instance().set(&DataKey::Price(asset), &price);
@@ -63,9 +70,15 @@ impl PriceOracle {
     /// Replace with Reflector oracle integration so IV is derived from
     /// on-chain price history rather than admin-fed values.
     pub fn set_implied_vol(env: Env, asset: Address, iv_bps: u32) {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("not initialized");
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
         admin.require_auth();
-        env.storage().instance().set(&DataKey::ImpliedVol(asset), &iv_bps);
+        env.storage()
+            .instance()
+            .set(&DataKey::ImpliedVol(asset), &iv_bps);
     }
 
     /// Get implied volatility for `asset` in basis points.

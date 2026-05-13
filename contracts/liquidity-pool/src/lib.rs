@@ -63,8 +63,16 @@ pub struct LiquidityPool;
 
 #[contractimpl]
 impl LiquidityPool {
-    pub fn initialize(env: Env, admin: Address, underlying_token: Address, options_contract: Address) {
-        assert!(!env.storage().instance().has(&DataKey::Config), "already initialized");
+    pub fn initialize(
+        env: Env,
+        admin: Address,
+        underlying_token: Address,
+        options_contract: Address,
+    ) {
+        assert!(
+            !env.storage().instance().has(&DataKey::Config),
+            "already initialized"
+        );
         env.storage().instance().set(
             &DataKey::Config,
             &PoolConfig {
@@ -123,7 +131,10 @@ impl LiquidityPool {
     // ── Views ─────────────────────────────────────────────────────────────────
 
     pub fn get_config(env: Env) -> PoolConfig {
-        env.storage().instance().get(&DataKey::Config).expect("not initialized")
+        env.storage()
+            .instance()
+            .get(&DataKey::Config)
+            .expect("not initialized")
     }
 
     pub fn shares_of(env: Env, account: Address) -> i128 {
@@ -135,7 +146,11 @@ impl LiquidityPool {
 
     /// Current share price in underlying units (7 decimals). Starts at 1.0.
     pub fn share_price(env: Env) -> i128 {
-        let config: PoolConfig = env.storage().instance().get(&DataKey::Config).expect("not initialized");
+        let config: PoolConfig = env
+            .storage()
+            .instance()
+            .get(&DataKey::Config)
+            .expect("not initialized");
         if config.total_shares == 0 {
             return 1_0000000;
         }

@@ -120,7 +120,9 @@ impl OptionsContract {
     /// 6. Set `status = Exercised` (ITM) or `Expired` (OTM); persist
     /// 7. Emit a `Settled` event
     pub fn settle(_env: Env, _option_id: u64, _oracle: Address) {
-        todo!("SOP-004: validate expired → read oracle → calculate payout → transfer → emit Settled")
+        todo!(
+            "SOP-004: validate expired → read oracle → calculate payout → transfer → emit Settled"
+        )
     }
 
     /// Writer reclaims collateral from an Open or Active option after expiry.
