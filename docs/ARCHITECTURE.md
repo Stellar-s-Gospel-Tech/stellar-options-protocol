@@ -12,13 +12,15 @@ The Stellar Options Protocol is a set of composable Soroban smart contracts for 
 
 ```
 contracts/
-├── options-writer/     ✅ Core options lifecycle (write, buy, exercise, reclaim)
-│                       🔨 write_option, buy_option, exercise, reclaim (SOP-001–004)
-├── options-vault/      ✅ initialize, share_price view
-│                       🔨 deposit, withdraw, roll_epoch (SOP-005–006)
-├── price-oracle/       ✅ Fully implemented — spot price + IV feed
-└── settlement/         ✅ initialize
-                        🔨 settle (SOP-009)
+├── interfaces/         ✅ Shared types: OptionData, OptionKind, OptionStatus
+├── price-oracle/       ✅ Spot price + implied volatility feed (4 tests)
+├── options/            ✅ Core options lifecycle
+│   ├── src/lib.rs      ← contract entry points (create, buy, exercise, settle, reclaim)
+│   ├── src/storage.rs  ← storage keys and helpers
+│   └── src/pricing.rs  ← fee calculation (v0: writer-set; v1: Black-Scholes TODO SOP-008)
+└── liquidity-pool/     ✅ Passive LP pool
+    ├── src/lib.rs      ← provide, withdraw, roll (SOP-006/007 open)
+    └── src/pool.rs     ← lock/unlock collateral helpers (SOP-006 open)
 ```
 
 ---
@@ -26,31 +28,38 @@ contracts/
 ## Contract Interactions
 
 ```
-User
+LP / User
  │
- ├── OptionsWriter.write_option(kind, underlying, quote, amount, strike, premium, expiry)
- │     └── transfers collateral from writer into contract
+ ├── LiquidityPool.provide(amount)
+ │     └── issues shares, tracks total_underlying
  │
- ├── OptionsWriter.buy_option(option_id)
+ ├── LiquidityPool.roll(strike, premium, expiry)   ← admin only
+ │     ├── reclaims previous epoch's option (if unexercised)
+ │     └── calls Options.create(pool, Call, ...) → locks pool's underlying
+ │
+ ├── Options.create(writer, kind, underlying, quote, amount, strike, premium, expiry)
+ │     └── locks collateral from writer into contract
+ │
+ ├── Options.buy(buyer, option_id)
  │     └── transfers premium from buyer to writer
  │
- ├── OptionsWriter.exercise(option_id)          ← physical settlement
+ ├── Options.exercise(option_id)          ← physical settlement (American)
  │     └── swaps underlying ↔ quote between buyer and contract
  │
- ├── Settlement.settle(option_id)               ← cash settlement
+ ├── Options.settle(option_id, oracle)    ← cash settlement (European, at expiry)
  │     ├── reads PriceOracle.get_price(underlying)
- │     ├── calculates payout = max(0, spot - strike) * amount / 1e7
- │     └── transfers payout to buyer; releases remainder to writer
+ │     ├── payout = max(0, spot - strike) * amount / 1e7  [call]
+ │     └── transfers payout to buyer; remainder to writer
  │
- └── OptionsVault.deposit(amount)
-       └── issues shares → vault writes covered calls via OptionsWriter
+ └── LiquidityPool.withdraw(shares)
+       └── burns shares, returns underlying + accrued premiums
 ```
 
 ---
 
 ## Key Data Structures
 
-### OptionData (options-writer)
+### OptionData (interfaces)
 
 | Field | Type | Description |
 |---|---|---|
@@ -59,56 +68,53 @@ User
 | `status` | OptionStatus | Open → Active → Exercised / Expired |
 | `writer` | Address | Collateral provider |
 | `buyer` | Option\<Address\> | Set when premium is paid |
-| `underlying_token` | Address | Asset being optioned (e.g. XLM SAC) |
+| `underlying_token` | Address | Asset being optioned (XLM SAC or SEP-41) |
 | `quote_token` | Address | Payment asset (e.g. USDC) |
-| `underlying_amount` | i128 | Collateral amount (7 decimals) |
-| `strike_price` | i128 | Strike in quote per underlying unit (7 decimals) |
+| `underlying_amount` | i128 | Collateral (7 decimals) |
+| `strike_price` | i128 | Strike in quote per underlying (7 decimals) |
 | `premium` | i128 | Premium in quote token |
-| `expiry_ledger` | u32 | Ledger sequence at which option expires |
+| `expiry_ledger` | u32 | Ledger sequence at expiry |
 
-### VaultConfig (options-vault)
+### PoolConfig (liquidity-pool)
 
 | Field | Type | Description |
 |---|---|---|
-| `admin` | Address | Can call roll_epoch |
-| `underlying_token` | Address | Single asset the vault holds |
-| `options_writer` | Address | OptionsWriter contract address |
+| `admin` | Address | Can call `roll` |
+| `underlying_token` | Address | Single asset the pool holds |
+| `options_contract` | Address | Options contract address |
 | `current_epoch` | u32 | Epoch counter |
 | `total_shares` | i128 | Outstanding LP shares |
-| `total_underlying` | i128 | Total underlying in vault |
+| `total_underlying` | i128 | Total underlying in pool |
 
 ---
 
 ## Settlement Models
 
-### Physical (OptionsWriter::exercise)
-Buyer delivers/receives the actual underlying token. Used for American-style options where the buyer wants the asset.
+**Physical (`Options::exercise`)** — tokens change hands. American-style, callable any time before expiry. Writer and buyer must both hold the relevant tokens.
 
-### Cash (Settlement::settle)
-At expiry, the oracle price determines intrinsic value. Payout is in quote token. No underlying changes hands. Simpler for buyers — the model used by Lyra, Hegic, and Premia on Ethereum.
+**Cash (`Options::settle`)** — oracle price at expiry determines intrinsic value. Payout in `quote_token`. No underlying moves. European-style, callable only at/after expiry.
 
 ---
 
 ## Pricing
 
-**v0 — writer-set premium:** The writer manually sets the premium when calling `write_option`. Simple but requires the writer to price correctly.
+**v0 — writer-set premium:** Writer specifies premium in `create()`. Simple, suitable for peer-to-peer writing.
 
-**v1 — Black-Scholes approximation (planned):**
+**v1 — Black-Scholes (SOP-008):**
 ```
-d1 = (ln(S/K) + (r + σ²/2) * T) / (σ * √T)
+d1 = (ln(S/K) + (σ²/2) * T) / (σ * √T)
 d2 = d1 - σ * √T
-Call = S * N(d1) - K * e^(-rT) * N(d2)
+Call = S * N(d1) - K * N(d2)
 ```
-Where S = spot, K = strike, σ = implied vol from PriceOracle, T = time to expiry in years.
-Integer approximation using fixed-point math — no floating point in Soroban.
+Where σ = implied vol from `PriceOracle::get_implied_vol`, T = ledgers_to_expiry / LEDGERS_PER_YEAR. Integer fixed-point — no floating point in Soroban.
 
 ---
 
 ## Deployment Order
 
 ```
-1. PriceOracle          (no deps)
-2. OptionsWriter        (no deps)
-3. Settlement           (depends on PriceOracle + OptionsWriter)
-4. OptionsVault         (depends on OptionsWriter)
+1. interfaces        (library, no deployment)
+2. price-oracle      ✅ no deps
+3. options           ✅ no deps at deploy time; oracle address passed per call
+4. liquidity-pool    depends on options contract address
 ```

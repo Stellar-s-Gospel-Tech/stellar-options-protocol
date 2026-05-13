@@ -1,5 +1,5 @@
 [package]
-name = "options-writer"
+name = "liquidity-pool"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,6 +8,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 soroban-sdk = { workspace = true }
+interfaces = { path = "../interfaces" }
 
 [dev-dependencies]
 soroban-sdk = { version = "22.0.0", features = ["testutils"] }

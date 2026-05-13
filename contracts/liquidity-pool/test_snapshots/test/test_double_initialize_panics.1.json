@@ -1,6 +1,6 @@
 {
   "generators": {
-    "address": 5,
+    "address": 4,
     "nonce": 0
   },
   "auth": [
@@ -69,7 +69,7 @@
                             },
                             {
                               "key": {
-                                "symbol": "options_writer"
+                                "symbol": "options_contract"
                               },
                               "val": {
                                 "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4"

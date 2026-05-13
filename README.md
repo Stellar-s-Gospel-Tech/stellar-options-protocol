@@ -50,10 +50,10 @@ This protocol fills that gap.
 
 | Contract | Purpose |
 |---|---|
-| `options-writer` | Core options lifecycle: write → buy → exercise / reclaim |
-| `options-vault` | Passive LP vault that systematically writes covered calls |
+| `interfaces` | Shared types: `OptionData`, `OptionKind`, `OptionStatus` |
+| `options` | Core lifecycle: create → buy → exercise (physical) / settle (cash) / reclaim |
+| `liquidity-pool` | Passive LP pool: provide → roll epochs → withdraw with yield |
 | `price-oracle` | Admin-fed spot price and implied volatility (v0); Reflector (v1) |
-| `settlement` | Cash settlement at expiry using oracle price |
 
 ---
 

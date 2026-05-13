@@ -1,10 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
-    "contracts/options-writer",
-    "contracts/options-vault",
+    "contracts/interfaces",
     "contracts/price-oracle",
-    "contracts/settlement",
+    "contracts/options",
+    "contracts/liquidity-pool",
 ]
 
 [workspace.dependencies]
