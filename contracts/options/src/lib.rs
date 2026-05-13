@@ -34,11 +34,12 @@
 //! - `pricing.rs` — fee/premium calculation (v0: writer-set; v1: Black-Scholes)
 
 #![no_std]
+#![allow(clippy::too_many_arguments)]
 
 mod pricing;
 mod storage;
 
-use interfaces::{OptionData, OptionKind, OptionStatus};
+use interfaces::{OptionData, OptionKind};
 use soroban_sdk::{contract, contractimpl, Address, Env};
 
 pub use interfaces::{OptionData as OptionDataExport, OptionKind as OptionKindExport};

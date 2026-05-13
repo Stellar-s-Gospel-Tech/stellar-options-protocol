@@ -14,10 +14,10 @@ fn setup() -> (Env, Address, Address, Address, Address) {
     let buyer = Address::generate(&env);
     let underlying_id = env.register_stellar_asset_contract_v2(writer.clone());
     let underlying = underlying_id.address();
-    StellarAssetClient::new(&env, &underlying).mint(&writer, &1_000_0000000_i128);
+    StellarAssetClient::new(&env, &underlying).mint(&writer, &10_000_000_000_i128);
     let quote_id = env.register_stellar_asset_contract_v2(writer.clone());
     let quote = quote_id.address();
-    StellarAssetClient::new(&env, &quote).mint(&buyer, &1_000_0000000_i128);
+    StellarAssetClient::new(&env, &quote).mint(&buyer, &10_000_000_000_i128);
     (env, writer, buyer, underlying, quote)
 }
 

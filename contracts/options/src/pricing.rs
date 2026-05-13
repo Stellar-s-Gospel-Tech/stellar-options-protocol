@@ -28,10 +28,12 @@
 //! using the Black-Scholes approximation above.
 
 /// Approximate ledgers per year at ~5-second ledger intervals.
+#[allow(dead_code)]
 pub const LEDGERS_PER_YEAR: u32 = 6_307_200;
 
 /// Validate that a writer-set premium is reasonable (> 0).
 /// In v1 this will be replaced by Black-Scholes validation.
+#[allow(dead_code)]
 pub fn validate_premium(premium: i128) -> bool {
     premium > 0
 }
