@@ -17,10 +17,7 @@ pub fn get_option(env: &Env, id: u64) -> OptionData {
 }
 
 pub fn option_count(env: &Env) -> u64 {
-    env.storage()
-        .instance()
-        .get(&DataKey::NextId)
-        .unwrap_or(0)
+    env.storage().instance().get(&DataKey::NextId).unwrap_or(0)
 }
 
 #[allow(dead_code)]
